@@ -11,7 +11,7 @@ Improperly coded plugins will start throwing errors, as they won't check whether
 
 ## Forwards
 ```c
-forward void OnEntityLockdown(); // Fired when an edict limit is reached, only once per round. Use this to cleanup less useful entities.
+forward void OnEntityLockdown(); // Fired when an edict limit is reached, get's called everytime the threshold is reached. Use this to cleanup less useful entities.
 ```
 ## Natives
 ```c
@@ -35,8 +35,8 @@ ed_lowedict_block_threshold "8"
 // Ideally keep the same as ed_lowedict_threshold
 // 0 Disables entity spawn prevention, rather than allowing 0 free edicts and keeping the server on thin ice
 
-ed_announce_once "1"
-// Whether OnEntityLockdown gets called only once per round, if false every attempt of spawning an entity over the limit will fire the forward
+ed_announce_cooldown "1"
+// Cooldown preventing OnEntityLockdown forward from being called multiple times in a short period of time
 ```
 ## Commands
 ```c

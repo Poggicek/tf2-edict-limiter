@@ -8,14 +8,15 @@ bool edictExists[2049];
 
 #define MAX_EDICTS 2048
 
-bool announcedLimitation;
 int edicts = 0;
 float nextActionIn = 0.0;
+float nextForwardIn = 0.0;
+bool isBlocking = false;
 GlobalForward g_entityLockdownForward;
 ConVar g_cvLowEdictAction;
 ConVar g_cvLowEdictThreshold;
 ConVar g_cvLowEdictBlockThreshold;
-ConVar g_cvForwardOnce;
+ConVar g_cvForwardCooldown;
 
 public Plugin myinfo =
 {
@@ -28,6 +29,7 @@ public Plugin myinfo =
 public void OnMapStart()
 {
   nextActionIn = 0.0;
+  nextForwardIn = 0.0;
 }
 
 public void OnPluginStart()
@@ -74,13 +76,12 @@ public void OnPluginStart()
 
   RegAdminCmd("sm_edictcount", Command_EdictCount, ADMFLAG_ROOT);
   RegAdminCmd("sm_spewedicts", Command_SpewEdicts, ADMFLAG_ROOT);
-  HookEvent("teamplay_round_start", EventRoundPreStart);
 
   g_entityLockdownForward = new GlobalForward("OnEntityLockdown", ET_Ignore);
   g_cvLowEdictAction = CreateConVar("ed_lowedict_action", "1", "0 - no action, 1 - only prevent entity spawns, 2 - attempt to restart the game, if applicable, 3 - restart the map, 4 - go to the next map in the map cycle, 5 - spew all edicts.", _, true, 0.0, true, 5.0);
   g_cvLowEdictThreshold = CreateConVar("ed_lowedict_threshold", "8", "When only this many edicts are free, take the action specified by sv_lowedict_action.", _, true, 0.0, true, 1920.0);
   g_cvLowEdictBlockThreshold = CreateConVar("ed_lowedict_block_threshold", "8", "When only this many edicts are free, prevent entity spawns.", _, true, 0.0, true, 1920.0);
-  g_cvForwardOnce = CreateConVar("ed_announce_once", "1", "Whether OnEntityLockdown gets called only once per round", _, true, 0.0, true, 1.0);
+  g_cvForwardCooldown = CreateConVar("ed_announce_cooldown", "1", "OnEntityLockdown cooldown", _, true, 0.0, false);
 }
 
 public MRESReturn OnEdictAllocate(Handle hParams)
@@ -101,6 +102,12 @@ public MRESReturn OnEdictFreed(Handle hParams)
   {
     edicts--;
     edictExists[edict] = false;
+  }
+
+  if(isBlocking && MAX_EDICTS - edicts > g_cvLowEdictBlockThreshold.IntValue)
+  {
+    isBlocking = false;
+    PrintToServer("[Edict Limiter] Entity creation is no longer blocked.");
   }
   return MRES_Ignored;
 }
@@ -128,19 +135,13 @@ void HookEngineEntities(GameData hGameConf)
 }
 
 // This is a list of entities that are allowed to be created even if the edict limit is reached, could result in a crash otherwise.
-char ignoreEnts[][] = {"tf_bot", "player", "ai_network", "tf_player_manager", "worldspawn", "instanced_scripted_scene", "info_target", "tf_team", "tf_gamerules", "tf_objective_resource", "monster_resource", "tf_viewmodel", "scene_manager", "team_round_timer"};
+char ignoreEnts[][] = {"spotlight_end", "tf_bot", "player", "ai_network", "tf_player_manager", "worldspawn", "instanced_scripted_scene", "info_target", "tf_team", "tf_gamerules", "tf_objective_resource", "monster_resource", "tf_viewmodel", "scene_manager", "team_round_timer"};
 
 public MRESReturn Detour_CreateEntityByName(Handle hReturn, Handle hParams)
 {
   if(g_cvLowEdictAction.IntValue > 0 && MAX_EDICTS - edicts <= g_cvLowEdictThreshold.IntValue)
   {
     PrintToServer("[Edict Limiter] Warning: free edicts below threshold. %i free edict%s remaining", MAX_EDICTS - edicts, MAX_EDICTS - edicts == 1 ? "" : "s");
-
-    if(!announcedLimitation || !g_cvForwardOnce.BoolValue)
-    {
-      AnnounceEntityLockDown();
-      announcedLimitation = true;
-    }
 
     if(nextActionIn <= GetGameTime() || nextActionIn == 0.0)
     {
@@ -193,6 +194,13 @@ public MRESReturn Detour_CreateEntityByName(Handle hReturn, Handle hParams)
 
     if(g_cvLowEdictBlockThreshold.IntValue > 0 && MAX_EDICTS - edicts <= g_cvLowEdictBlockThreshold.IntValue)
     {
+      if((nextForwardIn <= GetGameTime() || nextForwardIn == 0.0) && !isBlocking)
+      {
+        AnnounceEntityLockDown();
+        nextForwardIn = GetGameTime() + g_cvForwardCooldown.FloatValue;
+      }
+
+      isBlocking = true;
       PrintToServer("[Edict Limiter] Blocking entity creation of %s", classname);
       DHookSetReturn(hReturn, 0);
       return MRES_Supercede;
@@ -204,6 +212,7 @@ public MRESReturn Detour_CreateEntityByName(Handle hReturn, Handle hParams)
 
 void AnnounceEntityLockDown()
 {
+  PrintToServer("[Edict Limiter] Entity creation is blocked until edicts are freed.");
   Call_StartForward(g_entityLockdownForward);
   Call_Finish();
 }
@@ -236,12 +245,6 @@ public Action Command_SpewEdicts(int client, int args)
 
   SpewEdicts(client);
   return Plugin_Handled;
-}
-
-public Action EventRoundPreStart(Event event, char[] name, bool dontBroadcast)
-{
-  announcedLimitation = false;
-  return Plugin_Continue;
 }
 
 int Native_GetEdictCount(Handle plugin, int numParams)
