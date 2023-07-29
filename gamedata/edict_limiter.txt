@@ -1,0 +1,69 @@
+"Games"
+{
+    "tf"
+    {
+        "Functions"
+        {
+            "IServerPluginCallbacks::OnEdictAllocated"
+            {
+                "offset" "IServerPluginCallbacks::OnEdictAllocated"
+                "hooktype" "raw"
+                "return" "void"
+                "this" "ignore"
+                "arguments"
+                {
+                    "edict"
+                    {
+                        "type" "edict"
+                    }
+                }
+            }
+
+            "IServerPluginCallbacks::OnEdictFreed"
+            {
+                "offset" "IServerPluginCallbacks::OnEdictFreed"
+                "hooktype" "raw"
+                "return" "void"
+                "this" "ignore"
+                "arguments"
+                {
+                    "edict"
+                    {
+                        "type" "edict"
+                    }
+                }
+            }
+        }
+
+        "Offsets"
+        {
+            "IServerPluginCallbacks::OnEdictAllocated"
+            {
+                "windows" "16"
+                "linux" "16"
+            }
+
+            "IServerPluginCallbacks::OnEdictFreed"
+            {
+                "windows" "17"
+                "linux" "17"
+            }
+        }
+
+        "Signatures"
+        {
+            "CreateInterface"
+            {
+                "library" "engine"
+                "windows" "@CreateInterface"
+                "linux" "@CreateInterface"
+            }
+            "CEntityFactoryDictionary::Create"
+            {
+                "library" "server"
+                "windows" "\x55\x8B\xEC\x8B\x01\x56\x8B\x75\x08\x56\xFF\x50\x0C"
+                "linux" "@_ZN24CEntityFactoryDictionary6CreateEPKc"
+            }
+        }
+    }
+}
