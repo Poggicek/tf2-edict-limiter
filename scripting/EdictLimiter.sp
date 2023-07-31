@@ -135,7 +135,32 @@ void HookEngineEntities(GameData hGameConf)
 }
 
 // This is a list of entities that are allowed to be created even if the edict limit is reached, could result in a crash otherwise.
-char ignoreEnts[][] = {"spotlight_end", "tf_bot", "player", "ai_network", "tf_player_manager", "worldspawn", "instanced_scripted_scene", "info_target", "tf_team", "tf_gamerules", "tf_objective_resource", "monster_resource", "tf_viewmodel", "scene_manager", "team_round_timer"};
+char ignoreEnts[][] =
+{
+  "spotlight_end",
+  "tf_bot",
+  "player",
+  "ai_network",
+  "tf_player_manager",
+  "worldspawn",
+  "instanced_scripted_scene",
+  "info_target",
+  "tf_team",
+  "tf_gamerules",
+  "tf_objective_resource",
+  "monster_resource",
+  "tf_viewmodel",
+  "scene_manager",
+  "team_round_timer",
+  "team_control_point_master",
+  "team_control_point",
+  "tf_logic_koth",
+  "logic_auto",
+  "logic_relay",
+  "item_teamflag",
+  "trigger_capture_area",
+  "tf_logic_arena",
+};
 
 public MRESReturn Detour_CreateEntityByName(Handle hReturn, Handle hParams)
 {
@@ -298,7 +323,7 @@ void SpewEdicts(int client = 0)
     int count = clsCount.Get(i);
 
     for(int x = 0; x < clsSnapshot.Length; x++)
-		{
+    {
       char classname[64];
       clsSnapshot.GetKey(x, classname, sizeof classname);
 
