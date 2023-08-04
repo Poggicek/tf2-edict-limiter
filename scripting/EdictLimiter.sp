@@ -524,13 +524,16 @@ void SpewEdicts(int client = 0)
 
     for(int i = 0; i < MAX_EDICTS; i++)
     {
-        if(IsValidEntity(i))
+        if(IsValidEdict(i))
         {
             char classname[64];
             GetEdictClassname(i, classname, sizeof classname);
 
-            char netname[64];
-            GetEntityNetClass(i, netname, sizeof netname);
+            char netname[64] = "No Netclass!";
+            if (IsValidEntity(i))
+            {
+                GetEntityNetClass(i, netname, sizeof netname);
+            }
 
             char final[129];
             Format(final, sizeof(final), "%s - %s", classname, netname);
