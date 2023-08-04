@@ -33,6 +33,41 @@
                     }
                 }
             }
+            "ED_Alloc"
+            {
+                "signature" "ED_Alloc"
+                "hooktype"  "raw"
+                "return"    "void"
+                "this"      "ignore"
+                "arguments"
+                {
+                    "forcedIdx"
+                    {
+                        "type" "int"
+                    }
+                }
+            }
+            "CTFPlayer::UpdateExpression"
+            {
+                "signature" "CTFPlayer::UpdateExpression"
+                "hooktype"  "raw"
+                "return"    "void"
+                "this"      "ignore"
+             }
+            "CTFPlayer::SpeakWeaponFire"
+            {
+                "signature" "CTFPlayer::SpeakWeaponFire"
+                "hooktype"  "raw"
+                "return"    "void"
+                "this"      "ignore"
+                "arguments"
+                {
+                    "concept"
+                    {
+                        "type" "int"
+                    }
+                }
+             }
         }
 
         "Offsets"
@@ -64,6 +99,82 @@
                 "windows" "\x55\x8B\xEC\x8B\x01\x56\x8B\x75\x08\x56\xFF\x50\x0C"
                 "linux" "@_ZN24CEntityFactoryDictionary6CreateEPKc"
             }
+            "ED_Alloc"
+            {
+                "library" "engine"
+                //"windows" "\x55\x8B\xEC\x8B\x01\x56\x8B\x75\x08\x56\xFF\x50\x0C"
+                "linux" "@_Z8ED_Alloci"
+            }
+            // for getting sv.num_edicts etc
+            "sv"
+            {
+                "library"   "engine"
+                "linux"     "@sv"
+            }
+            // blocking facial flexes
+            "CTFPlayer::TFPlayerThink"
+            {
+                "library"   "server"
+                // _ZN9CTFPlayer16UpdateExpressionEv
+                "linux"     "@_ZN9CTFPlayer13TFPlayerThinkEv"
+            }
+
+            // blocking facial flexes
+            "CTFPlayer::SpeakWeaponFire"
+            {
+                "library"   "server"
+                "linux"     "@_ZN9CTFPlayer15SpeakWeaponFireEi"
+            }
+
         }
+        "MemPatches"
+        {
+            "ED_Alloc::nop"
+            {
+                "signature"     "ED_Alloc"
+                "linux"
+                {
+                    // always try to alloc a new ent, regardless of FreeTime
+                    "offset"    "0224h"
+                    "verify"    "\x0F\x86\x2A\x2A\x2A\x2A"
+                    "patch"     "\x90\x90\x90\x90\x90\x90"
+                }
+                // "windows"
+                // {
+                // }
+            }
+            // C85
+            "CTFPlayer::TFPlayerThink_C85"
+            {
+                "signature"     "CTFPlayer::TFPlayerThink"
+                "linux"
+                {
+                    // always try to alloc a new ent, regardless of FreeTime
+                    "offset"    "0C61h"
+                    //"verify"    "\x0F\x86\x2A\x2A\x2A\x2A"
+                    "patch"     "\xE9\xAE\xF4\xFF\xFF"
+                }
+                // "windows"
+                // {
+                // }
+            }
+            // C9A
+            //"CTFPlayer::TFPlayerThink_C9A"
+            //{
+            //    "signature"     "CTFPlayer::TFPlayerThink"
+            //    "linux"
+            //    {
+            //        // always try to alloc a new ent, regardless of FreeTime
+            //        "offset"    "0C9Ah"
+            //        //"verify"    "\x0F\x86\x2A\x2A\x2A\x2A"
+            //        "patch"     "\x90\x90\x90\x90\x90"
+            //    }
+            //    // "windows"
+            //    // {
+            //    // }
+            //}
+        }
+
+
     }
 }
