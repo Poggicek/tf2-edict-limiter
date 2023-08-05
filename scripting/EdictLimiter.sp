@@ -68,7 +68,7 @@ public void OnPluginStart()
     g_cvLowEdictBlockThreshold  = CreateConVar("ed_lowedict_block_threshold",   "8", "When only this many edicts are free, prevent entity spawns.", _, true, 0.0, true, 1920.0);
     g_cvForwardCooldown         = CreateConVar("ed_announce_cooldown",          "1", "OnEntityLockdown cooldown", _, true, 0.0, false);
 
-    ed_aggressive_ent_culling   = CreateConVar("ed_aggressive_ent_culling",     "1", "1 - Enable aggressive culling of entities, 2 - enable HYPER AGGRESSIVE, and likely unstable methods of entity culling. YOU HAVE TO SET THIS CVAR ON SERVER START OR YOU WILL CRASH. SORRY.", _, true, 0.0, false);
+    ed_aggressive_ent_culling   = CreateConVar("ed_aggressive_ent_culling",     "1", "1 - Enable aggressive culling of entities, 2 - enable HYPER AGGRESSIVE, and likely unstable methods of entity culling.", _, true, 0.0, false);
 
     DoGameData();
 
@@ -109,7 +109,6 @@ void DoGameData()
 
 
 
-
     // @sv - for sv.num_entities and other offsets
     {
         sv = hGameConf.GetMemSig("sv");
@@ -118,7 +117,6 @@ void DoGameData()
             SetFailState("Couldn't find sv.");
         }
         LogMessage("-> Got sv pointer           = 0x%X", sv);
-
     }
 
     // Set up IServerPluginCallbacks detours
@@ -199,7 +197,7 @@ void DoGameData()
         if (!ED_Alloc)
         {
             SetFailState("Couldn't create DHOOK for ED_Alloc");
-        }  
+        }
         if (!DHookEnableDetour(ED_Alloc, false /* pre */, Detour_ED_Alloc_Pre))
         {
             SetFailState("Couldn't set up detour for ED_Alloc");
@@ -210,39 +208,29 @@ void DoGameData()
 
     if (ed_aggressive_ent_culling.IntValue == 2)
     {
-        // Destroy ents that get created when a player speaks while firing a weapon - VERY UNSTABLE
-        // DO NOT USE WITHOUT FIGURING OUT WHY THIS CRASHES
+        // Destroy ents that get created when a player speaks while firing a weapon
         Handle SpeakWepFire = DHookCreateFromConf(hGameConf, "CTFPlayer::SpeakWeaponFire");
         if (!SpeakWepFire)
         {
             SetFailState("Couldn't create DHOOK for SpeakWepFire");
-        }  
+        }
         if (!DHookEnableDetour(SpeakWepFire, false /* pre */, CTFPlayer__SpeakWeaponFire))
         {
             SetFailState("Couldn't set up detour for SpeakWepFire");
         }
         LogMessage("-> Set up [PRE]  SpeakWepFire detour");
 
-
-        // Destroy facial flex ents - DO NOT USE, SEEMS UNSTABLE ON PLUGIN UNLOAD
-        MemoryPatch WhackFlexEnts_1 = MemoryPatch.CreateFromConf(hGameConf, "CTFPlayer::TFPlayerThink_C85");
-        if (!WhackFlexEnts_1.Validate())
+        Handle UpdateExpression = DHookCreateFromConf(hGameConf, "CTFPlayer::UpdateExpression");
+        if (!UpdateExpression)
         {
-            SetFailState("Failed to verify WhackFlexEnts_1.");
+            SetFailState("Couldn't create DHOOK for UpdateExpression");
         }
-        else if (WhackFlexEnts_1.Enable())
+        if (!DHookEnableDetour(UpdateExpression, false /* pre */, CTFPlayer__UpdateExpression_Pre))
         {
-            LogMessage("-> Enabled WhackFlexEnts_1.");
+            SetFailState("Couldn't set up detour for UpdateExpression");
         }
-        else
-        {
-            SetFailState("Failed to enable WhackFlexEnts_1.");
-        }
+        LogMessage("-> Set up [PRE]  UpdateExpression detour");
     }
-
-
-
-
 
     delete hGameConf;
 }
@@ -251,12 +239,10 @@ public MRESReturn CTFPlayer__SpeakWeaponFire(Handle hParams)
     return MRES_Supercede;
 }
 
-/*
 public MRESReturn CTFPlayer__UpdateExpression_Pre()
 {
     return MRES_Supercede;
 }
-*/
 
 public MRESReturn Detour_ED_Alloc_Pre(Handle hParams)
 {
@@ -346,7 +332,7 @@ char ignoreEnts[][] =
     "monster_resource",
     "scene_manager",
     "team_round_timer",
-    "team_control_point_master", 
+    "team_control_point_master",
     "team_control_point",
     "tf_logic_koth",
     "logic_auto",
@@ -426,7 +412,7 @@ public MRESReturn CEntityFactoryDictionary__Create_Pre(Handle hReturn, Handle hP
         )
     )
     {
-        DHookSetReturn(hReturn, 0); 
+        DHookSetReturn(hReturn, 0);
         return MRES_Supercede;
     }
 
@@ -465,7 +451,7 @@ public MRESReturn CEntityFactoryDictionary__Create_Pre(Handle hReturn, Handle hP
 
         return MRES_Supercede;
     }
-    
+
 
     return MRES_Ignored;
 }

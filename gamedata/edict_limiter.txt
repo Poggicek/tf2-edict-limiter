@@ -51,6 +51,7 @@
             {
                 "signature" "CTFPlayer::UpdateExpression"
                 "hooktype"  "raw"
+                "callconv"  "thiscall"
                 "return"    "void"
                 "this"      "ignore"
              }
@@ -58,6 +59,7 @@
             {
                 "signature" "CTFPlayer::SpeakWeaponFire"
                 "hooktype"  "raw"
+                "callconv"  "thiscall"
                 "return"    "void"
                 "this"      "ignore"
                 "arguments"
@@ -102,7 +104,8 @@
             "ED_Alloc"
             {
                 "library" "engine"
-                //"windows" "\x55\x8B\xEC\x8B\x01\x56\x8B\x75\x08\x56\xFF\x50\x0C"
+                // ED_Alloc( %d ) - invalid edict index specified.
+                "windows" "\x55\x8B\xEC\x83\xEC\x10\x56\x8B\x75\x08\x57\x85\xF6"
                 "linux" "@_Z8ED_Alloci"
             }
             // for getting sv.num_edicts etc
@@ -111,19 +114,21 @@
                 "library"   "engine"
                 "linux"     "@sv"
             }
-            // blocking facial flexes
-            "CTFPlayer::TFPlayerThink"
-            {
-                "library"   "server"
-                // _ZN9CTFPlayer16UpdateExpressionEv
-                "linux"     "@_ZN9CTFPlayer13TFPlayerThinkEv"
-            }
 
             // blocking facial flexes
             "CTFPlayer::SpeakWeaponFire"
             {
                 "library"   "server"
+                "windows"   "\x55\x8B\xEC\x8B\x45\x08\x81\xEC\x04\x01\x00\x00"
                 "linux"     "@_ZN9CTFPlayer15SpeakWeaponFireEi"
+            }
+
+            // blocking facial flexes
+            "CTFPlayer::UpdateExpression"
+            {
+                "library"   "server"
+                "windows"   "\x55\x8B\xEC\x81\xEC\x08\x01\x00\x00\x8D\x85\xF8\xFE\xFF\xFF\x56\x68\x04\x01\x00\x00"
+                "linux"     "@_ZN9CTFPlayer16UpdateExpressionEv"
             }
 
         }
@@ -139,40 +144,13 @@
                     "verify"    "\x0F\x86\x2A\x2A\x2A\x2A"
                     "patch"     "\x90\x90\x90\x90\x90\x90"
                 }
-                // "windows"
-                // {
-                // }
-            }
-            // C85
-            "CTFPlayer::TFPlayerThink_C85"
-            {
-                "signature"     "CTFPlayer::TFPlayerThink"
-                "linux"
+                "windows"
                 {
-                    // always try to alloc a new ent, regardless of FreeTime
-                    "offset"    "0C61h"
-                    //"verify"    "\x0F\x86\x2A\x2A\x2A\x2A"
-                    "patch"     "\xE9\xAE\xF4\xFF\xFF"
+                    "offset"    "0EEh"
+                    "verify"    "\x77\x1B"
+                    "patch"     "\xEB\x1B"
                 }
-                // "windows"
-                // {
-                // }
             }
-            // C9A
-            //"CTFPlayer::TFPlayerThink_C9A"
-            //{
-            //    "signature"     "CTFPlayer::TFPlayerThink"
-            //    "linux"
-            //    {
-            //        // always try to alloc a new ent, regardless of FreeTime
-            //        "offset"    "0C9Ah"
-            //        //"verify"    "\x0F\x86\x2A\x2A\x2A\x2A"
-            //        "patch"     "\x90\x90\x90\x90\x90"
-            //    }
-            //    // "windows"
-            //    // {
-            //    // }
-            //}
         }
 
 
