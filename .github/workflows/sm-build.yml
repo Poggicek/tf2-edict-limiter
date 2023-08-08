@@ -1,0 +1,47 @@
+name: EdLimiter Autobuild
+# modified from https://github.com/nosoop/NinjaBuild-SMPlugin/blob/master/contrib/github-workflow/build-on-version-tag-push.yml
+
+permissions:
+  contents: write
+
+'on':
+  push:
+    tags:
+      - v*
+jobs:
+  compile:
+    name: Compile plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Setup SourcePawn Compiler
+        uses: rumblefrog/setup-sp@master
+        with:
+          version: "1.12.x"
+
+      - name: Compile plugins
+        run: |
+          cd ./scripting
+          pwd
+          spcomp -i"./include/" EdictLimiter.sp -o ../plugins/EdictLimiter.smx
+          ls -la
+          cd ../
+
+      - name: Zip packages
+        run: |
+          pwd
+          ls -la
+          7za a -r sm-EdictLimiter.zip scripting/ plugins/ gamedata/ extensions/
+          ls -la
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ./sm-EdictLimiter.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          # if: contains(github.ref, 'beta')
+          # prerelease: true
