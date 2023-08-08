@@ -1,13 +1,16 @@
 name: EdLimiter Autobuild
 # modified from https://github.com/nosoop/NinjaBuild-SMPlugin/blob/master/contrib/github-workflow/build-on-version-tag-push.yml
 
+permissions:
+  contents: write
+
 'on':
   push:
     tags:
       - v*
 jobs:
   compile:
-    name: Compile extension in docker
+    name: Compile plugin
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
