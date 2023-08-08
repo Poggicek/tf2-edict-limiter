@@ -27,24 +27,20 @@ jobs:
           pwd
           spcomp -i"./include/" EdictLimiter.sp -o ../plugins/EdictLimiter.smx
           ls -la
+          cd ../
 
       - name: Zip packages
         run: |
           pwd
           ls -la
-          mkdir build
-          pushd build
           7za a -r sm-EdictLimiter.zip scripting/ plugins/ gamedata/ extensions/
           ls -la
-          pwd
-          ls -la
-          popd
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            ./build/sm-EdictLimiter.zip
+            ./sm-EdictLimiter.zip
           fail_on_unmatched_files: true
           generate_release_notes: true
           # if: contains(github.ref, 'beta')
