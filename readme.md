@@ -1,4 +1,3 @@
-
 # TF2 Edict Limiter
 Ported to TF2 from https://forums.alliedmods.net/showthread.php?t=340973
 
