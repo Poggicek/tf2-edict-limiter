@@ -24,7 +24,7 @@ public Plugin myinfo =
     name        = "Edict Limiter",
     author      = "Poggu & https://sappho.io",
     description = "Prevents edict limit crashes",
-    version     = "3.0.0"
+    version     = "3.0.1"
 };
 
 public void OnMapStart()
@@ -343,6 +343,7 @@ char ignoreEnts[][] =
     "passtime_ball",
     "instanced_scripted_scene",
     "tf_viewmodel",
+    "beam",
 };
 
 void DoLowEntAction(int doAction = -1)
