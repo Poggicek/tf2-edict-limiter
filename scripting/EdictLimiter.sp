@@ -12,6 +12,7 @@ bool edictExists[2049];
 int edicts = 0;
 float nextActionIn = 0.0;
 float nextForwardIn = 0.0;
+float nextCleanupIn = 0.0;
 bool isBlocking = false;
 
 Handle g_hAttemptTimer = INVALID_HANDLE;
@@ -40,6 +41,7 @@ public void OnMapEnd()
 {
     nextActionIn = 0.0;
     nextForwardIn = 0.0;
+    nextCleanupIn = 0.0;
     g_iAttempts = 0;
     g_hAttemptTimer = INVALID_HANDLE;
 }
@@ -428,8 +430,9 @@ public MRESReturn CEntityFactoryDictionary__Create_Pre(Handle hReturn, Handle hP
 
     int freeEdicts = MAX_EDICTS - edicts;
 
-    if (g_cvLowEdictCleanThreshold.IntValue > 0 && freeEdicts <= g_cvLowEdictCleanThreshold.IntValue)
+    if (g_cvLowEdictCleanThreshold.IntValue > 0 && freeEdicts <= g_cvLowEdictCleanThreshold.IntValue && (nextCleanupIn <= GetGameTime() || nextCleanupIn == 0.0))
     {
+      nextCleanupIn = GetGameTime() + 5.0;
       DoEntCleanup();
     }
 
@@ -497,15 +500,13 @@ void DoEntCleanup()
     if(g_hAttemptTimer != INVALID_HANDLE)
       delete g_hAttemptTimer;
 
-
     // too many attempts, give up
     if(++g_iAttempts >= g_cvMaxAttempts.IntValue)
     {
         g_iAttempts = 0;
         if(nextActionIn <= GetGameTime() || nextActionIn == 0.0)
         {
-            PrintToServer("[Edict Limiter] Too many attempts, taking action.");
-            PrintToChatAll("[Edict Limiter] Too many attempts, taking action.");
+            GlobalPrint("[Edict Limiter] Too many attempts, taking action.");
             DoLowEntAction();
         }
         return;
@@ -539,8 +540,7 @@ void DoEntCleanup()
         }
     }
 
-    PrintToServer("[Edict Limiter] Nuked %i entities.", ents_nuked);
-    PrintToChatAll("[Edict Limiter] Nuked %i entities.", ents_nuked);
+    GlobalPrint("[Edict Limiter] Nuked %i entities.", ents_nuked);
 }
 
 
@@ -682,4 +682,22 @@ void SpewEdicts(int client = 0)
         PrintToConsole(client, "sv.max_edicts %i", GetSvOffs(OFFS_max_edicts));
         PrintToConsole(client, "sv.free_edicts %i", GetSvOffs(OFFS_free_edicts));
     }
+}
+
+void GlobalPrint(const char[] format, any ...)
+{
+    char message[256];
+    VFormat(message, sizeof(message), format, 2);
+
+    SetHudTextParams(-1.0, -1.0, 5.0, 255, 255, 255, 255, _, _, _, _);
+    for(int i = 1; i <= MaxClients; i++)
+    {
+        if(IsClientInGame(i))
+        {
+            ShowHudText(i, -1, "%s", message);
+        }
+    }
+
+    PrintToChatAll("%s", message);
+    PrintToServer("%s", message);
 }
