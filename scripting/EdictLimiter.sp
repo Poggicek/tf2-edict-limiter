@@ -216,6 +216,16 @@ void DoGameData()
         LogMessage("-> Set up [PRE]  ED_Alloc detour");
     }
 
+    Handle CreateFeignDeathRagdoll = DHookCreateFromConf(hGameConf, "CTFPlayer::CreateFeignDeathRagdoll");
+    if (!CreateFeignDeathRagdoll)
+    {
+        SetFailState("Couldn't create DHOOK for CreateFeignDeathRagdoll");
+    }
+    if (!DHookEnableDetour(CreateFeignDeathRagdoll, false /* pre */, CTFPlayer__CreateFeignDeathRagdoll))
+    {
+        SetFailState("Couldn't set up detour for CreateFeignDeathRagdoll");
+    }
+    LogMessage("-> Set up [PRE]  CreateFeignDeathRagdoll detour");
 
     if (ed_aggressive_ent_culling.IntValue == 2)
     {
@@ -245,6 +255,12 @@ void DoGameData()
 
     delete hGameConf;
 }
+
+public MRESReturn CTFPlayer__CreateFeignDeathRagdoll(Handle hParams)
+{
+    return MRES_Supercede;
+}
+
 public MRESReturn CTFPlayer__SpeakWeaponFire(Handle hParams)
 {
     return MRES_Supercede;
