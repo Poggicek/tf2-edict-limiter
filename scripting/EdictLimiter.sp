@@ -81,7 +81,7 @@ public void OnPluginStart()
     g_cvMaxAttempts             = CreateConVar("ed_max_attempts",               "3", "How many attempts before giving up and calling action", _, true, 0.0, false);
     g_cvAttemptResetTime        = CreateConVar("ed_attempt_reset_time",         "90", "After how many seconds should attempts be reset", _, true, 0.0, false);
 
-    ed_aggressive_ent_culling   = CreateConVar("ed_aggressive_ent_culling",     "2", "1 - Enable aggressive culling of entities, 2 - enable HYPER AGGRESSIVE, and likely unstable methods of entity culling.", _, true, 0.0, false);
+    ed_aggressive_ent_culling   = CreateConVar("ed_aggressive_ent_culling",     "1", "1 - Enable aggressive culling of entities, 2 - enable HYPER AGGRESSIVE, and likely unstable methods of entity culling.", _, true, 0.0, false);
 
     DoGameData();
 }
