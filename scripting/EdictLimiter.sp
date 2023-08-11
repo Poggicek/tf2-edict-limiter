@@ -509,9 +509,7 @@ char uselessEntsSoft[][] =
 char uselessEntsHard[][] =
 {
     "func_dustmotes",
-    "func_smokevolume",
-    "halloween_souls_pack",
-    "tf_weapon_lunchbox"
+    "func_smokevolume"
 };
 
 char uselessEntsHarder[][] =
