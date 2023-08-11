@@ -70,6 +70,9 @@ public void OnPluginStart()
 
     RegAdminCmd("sm_edictcount", Command_EdictCount, ADMFLAG_ROOT);
     RegAdminCmd("sm_spewedicts", Command_SpewEdicts, ADMFLAG_ROOT);
+    RegAdminCmd("sm_murder", Command_Murder, ADMFLAG_ROOT);
+    RegAdminCmd("sm_tptoclassname", Command_TPToClassname, ADMFLAG_ROOT);
+    RegAdminCmd("sm_addtostripper", Command_AddToStripper, ADMFLAG_ROOT);
 
     g_entityLockdownForward     = new GlobalForward("OnEntityLockdown", ET_Ignore);
     g_cvLowEdictAction          = CreateConVar("ed_lowedict_action",            "1", "0 - no action, 1 - only prevent entity spawns, 2 - attempt to restart the game, if applicable, 3 - restart the map, 4 - go to the next map in the map cycle, 5 - spew all edicts.", _, true, 0.0, true, 5.0);
@@ -216,6 +219,16 @@ void DoGameData()
         LogMessage("-> Set up [PRE]  ED_Alloc detour");
     }
 
+    Handle CreateFeignDeathRagdoll = DHookCreateFromConf(hGameConf, "CTFPlayer::CreateFeignDeathRagdoll");
+    if (!CreateFeignDeathRagdoll)
+    {
+        SetFailState("Couldn't create DHOOK for CreateFeignDeathRagdoll");
+    }
+    if (!DHookEnableDetour(CreateFeignDeathRagdoll, false /* pre */, CTFPlayer__CreateFeignDeathRagdoll))
+    {
+        SetFailState("Couldn't set up detour for CreateFeignDeathRagdoll");
+    }
+    LogMessage("-> Set up [PRE]  CreateFeignDeathRagdoll detour");
 
     if (ed_aggressive_ent_culling.IntValue == 2)
     {
@@ -245,6 +258,12 @@ void DoGameData()
 
     delete hGameConf;
 }
+
+public MRESReturn CTFPlayer__CreateFeignDeathRagdoll(Handle hParams)
+{
+    return MRES_Supercede;
+}
+
 public MRESReturn CTFPlayer__SpeakWeaponFire(Handle hParams)
 {
     return MRES_Supercede;
@@ -421,6 +440,7 @@ public MRESReturn CEntityFactoryDictionary__Create_Pre(Handle hReturn, Handle hP
         (
                 StrEqual(classname, "tf_dropped_weapon")
              || StrEqual(classname, "tf_ragdoll")
+             || StrEqual(classname, "halloween_souls_pack")
         )
     )
     {
@@ -489,11 +509,31 @@ char uselessEntsSoft[][] =
 char uselessEntsHard[][] =
 {
     "func_dustmotes",
-    "func_smokevolume",
-    "halloween_souls_pack",
-    "tf_weapon_lunchbox"
+    "func_smokevolume"
 };
 
+char uselessEntsHarder[][] =
+{
+    "ambient_generic",
+    "info_particle_system",
+    "trigger_soundscape"
+};
+
+int NukeEntityClassname(const char[][] array, int size)
+{
+    int ents_nuked;
+    for(int i = 0; i < size; i++)
+    {
+        int ent = 0;
+        while((ent = FindEntityByClassname(ent, array[i])) != -1)
+        {
+            RemoveEntity(ent);
+            ents_nuked++;
+        }
+    }
+
+    return ents_nuked;
+}
 
 void DoEntCleanup()
 {
@@ -517,28 +557,13 @@ void DoEntCleanup()
     PrintToServer("[Edict Limiter] Attempting to clear less important entities.");
 
     int ents_nuked;
-    for(int i = 0; i < sizeof uselessEntsSoft; i++)
-    {
-        int ent = 0;
-        while((ent = FindEntityByClassname(ent, uselessEntsSoft[i])) != -1)
-        {
-            RemoveEntity(ent);
-            ents_nuked++;
-        }
-    }
+    ents_nuked += NukeEntityClassname(uselessEntsSoft, sizeof uselessEntsSoft);
 
     if(ents_nuked < g_cvHardCleanupThreshold.IntValue)
-    {
-        for(int i = 0; i < sizeof uselessEntsHard; i++)
-        {
-            int ent = 0;
-            while((ent = FindEntityByClassname(ent, uselessEntsHard[i])) != -1)
-            {
-                RemoveEntity(ent);
-                ents_nuked++;
-            }
-        }
-    }
+        ents_nuked += NukeEntityClassname(uselessEntsHard, sizeof uselessEntsHard);
+
+    if(g_iAttempts >= 2)
+        ents_nuked += NukeEntityClassname(uselessEntsHarder, sizeof uselessEntsHarder);
 
     GlobalPrint("[Edict Limiter] Nuked %i entities.", ents_nuked);
 }
@@ -571,6 +596,125 @@ int ExpensivelyGetUsedEdicts()
 public Action Command_EdictCount(int client, int args)
 {
     ReplyToCommand(client, "GetEntityCount: %i | Used edicts: %i | Used edicts (Precise, expensive): %i", GetEntityCount(), edicts, ExpensivelyGetUsedEdicts());
+    return Plugin_Handled;
+}
+
+char g_szTargetClassname[128];
+
+public bool RayRemoveTarget(int entity, int client)
+{
+    if(entity != client)
+    {
+        if(!IsValidEdict(entity) || entity == 0 || (entity > 0 && entity <= MaxClients))
+            return true;
+
+        TR_ClipCurrentRayToEntity(MASK_ALL, entity);
+
+        if(TR_DidHit())
+		{
+            char classname[128];
+            GetEdictClassname(entity, classname, sizeof classname);
+
+            if(StrEqual(classname, g_szTargetClassname))
+            {
+                PrintToChat(client ,"Removed and added to list");
+
+                char map[PLATFORM_MAX_PATH];
+                GetCurrentMap(map, sizeof(map));
+
+                File file;
+                char dataDir[PLATFORM_MAX_PATH];
+                FormatEx(dataDir, sizeof(dataDir), "../tf/addons/stripper/maps/%s.cfg", map);
+                if(!FileExists(dataDir)) file = OpenFile(dataDir, "a+");
+                else if(FileExists(dataDir)) file = OpenFile(dataDir, "a");
+                file.WriteLine("filter:");
+                file.WriteLine("{");
+                file.WriteLine("	\"hammerid\" \"%i\"", GetEntProp(entity, Prop_Data, "m_iHammerID"));
+                file.WriteLine("	\"classname\" \"%s\"", classname);
+                file.WriteLine("}");
+                delete file;
+
+                RemoveEntity(entity);
+                return false;
+            }
+        }
+
+        return true;
+    }
+    return true;
+}
+
+public Action Command_AddToStripper(int client, int args)
+{
+    if(!client)
+    {
+        PrintToServer("This command can only be used in-game");
+        return Plugin_Handled;
+    }
+
+    if(args != 1)
+    {
+        ReplyToCommand(client, "Usage: sm_addtostripper <classname>");
+        return Plugin_Handled;
+    }
+
+    GetCmdArg(1, g_szTargetClassname, sizeof g_szTargetClassname);
+
+    float ang[3], pos[3];
+    GetClientEyeAngles(client, ang);
+    GetClientEyePosition(client, pos);
+
+    TR_EnumerateEntities(pos, ang, PARTITION_NON_STATIC_EDICTS | PARTITION_SOLID_EDICTS | PARTITION_STATIC_PROPS | PARTITION_TRIGGER_EDICTS, RayType_Infinite, RayRemoveTarget, client);
+    return Plugin_Handled;
+}
+
+public Action Command_TPToClassname(int client, int args)
+{
+    if(args != 2)
+    {
+        ReplyToCommand(client, "Usage: sm_tptoclassname <classname> <index>");
+        return Plugin_Handled;
+    }
+
+    char classname[128];
+    GetCmdArg(1, classname, sizeof classname);
+
+    int ent = 0;
+    int index;
+    while((ent = FindEntityByClassname(ent, classname)) != -1)
+    {
+        if(index == GetCmdArgInt(2))
+        {
+            float origin[3];
+            GetEntPropVector(ent, Prop_Send, "m_vecOrigin", origin);
+            TeleportEntity(client, origin, NULL_VECTOR, NULL_VECTOR);
+            break;
+        }
+        index++;
+    }
+
+    return Plugin_Handled;
+}
+public Action Command_Murder(int client, int args)
+{
+    if(args != 1)
+    {
+        ReplyToCommand(client, "Usage: sm_murder <classname>");
+        return Plugin_Handled;
+    }
+
+    char classname[128];
+    GetCmdArg(1, classname, sizeof classname);
+
+    int ent = 0;
+    int ents_nuked;
+    while((ent = FindEntityByClassname(ent, classname)) != -1)
+    {
+        RemoveEntity(ent);
+        ents_nuked++;
+    }
+
+    ReplyToCommand(client, "Killed %i entities", ents_nuked);
     return Plugin_Handled;
 }
 
@@ -689,7 +833,7 @@ void GlobalPrint(const char[] format, any ...)
     char message[256];
     VFormat(message, sizeof(message), format, 2);
 
-    SetHudTextParams(-1.0, -1.0, 5.0, 255, 255, 255, 255, _, _, _, _);
+    SetHudTextParams(-1.0, 0.75, 5.0, 255, 255, 255, 255, _, _, _, _);
     for(int i = 1; i <= MaxClients; i++)
     {
         if(IsClientInGame(i))
