@@ -34,7 +34,7 @@ public Plugin myinfo =
     name        = "Edict Limiter",
     author      = "Poggu & https://sappho.io",
     description = "Prevents edict limit crashes",
-    version     = "3.0.3"
+    version     = "3.0.4"
 };
 
 public void OnMapEnd()
