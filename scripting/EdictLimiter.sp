@@ -455,6 +455,7 @@ public MRESReturn CEntityFactoryDictionary__Create_Pre(Handle hReturn, Handle hP
                 StrEqual(classname, "tf_dropped_weapon")
              || StrEqual(classname, "tf_ragdoll")
              || StrEqual(classname, "halloween_souls_pack")
+             || StrEqual(classname, "tf_mann_vs_machine_stats")
         )
     )
     {
