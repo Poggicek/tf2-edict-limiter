@@ -14,6 +14,7 @@ float nextActionIn = 0.0;
 float nextForwardIn = 0.0;
 float nextCleanupIn = 0.0;
 bool isBlocking = false;
+int isWindows = 0;
 
 Handle g_hAttemptTimer = INVALID_HANDLE;
 int g_iAttempts = 0;
@@ -121,11 +122,24 @@ void DoGameData()
     }
 
 
+    {
+        isWindows = hGameConf.GetOffset("WindowsOrLinux");
+        if(isWindows)
+        {
+            LogMessage("-> Running on Windows");
+            OFFS_num_edicts     = 0x1EC;
+            OFFS_max_edicts     = 0x1F0;
+            OFFS_free_edicts    = 0x1F4;
+        }
+    }
 
 
     // @sv - for sv.num_entities and other offsets
     {
-        sv = hGameConf.GetMemSig("sv");
+        if(isWindows)
+            sv = hGameConf.GetAddress("sv");
+        else
+            sv = hGameConf.GetMemSig("sv");
         if (!sv)
         {
             SetFailState("Couldn't find sv.");
